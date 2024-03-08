@@ -44,26 +44,53 @@ const ch3_1 = () => {
       [P in keyof T]?: T[P];
    };
 
+   type UserPartial = Partial<User>;
+
    let userPartial: Partial<User> = {
       name: "홍길동",
    };
 
-   console.log(userPartial);
+   let userPartialEmpty: Partial<User> = {};
 
+   // 속성중 일부만 optional 로 하려면???
+   // type SelectPartial<T, S> = {
+   //    "selected":[K]?: T[K],
+   //    "unselected":string
+   // }[ k in keyof T extends S ? "selected": "unselected"];
+
+   // type Test = SelectPartial<User, 'name'>;
+
+
+   type Required<T> = {
+      [k in keyof T]-?: T[k];
+   };
+
+   type UserRequired = Required<UserPartial>;
+
+   // 이건 T가 가지고 있지 않는 속성을 넣는 경우 에러가 남
    type Pick<T, K extends keyof T> = {
       [P in K]: T[P];
    };
 
-   type myPick<T, K extends keyof T> = {
-      [P in K]: T[P];
+   // 조건걸고 범위를 벋어나면 never로
+   type MyPick<T, K> = {
+      [P in K extends keyof T ? K : never]: T[P];
    };
 
-   let userPick: Pick<User, "name" | "age"> = {
+   // 범위에 없는것을 넣어도 에러 발생하지 않고, 마스킹 됨
+   let userPick: MyPick<User, "name" | "age" | "sex"> = {
       name: "이기범",
       age: 33,
    };
 
    console.log(userPick);
+
+
+   type Record<K extends keyof any, T> = {
+      [P in K]: T;
+   };
+
+   type myRecord = Record<"name" | "id", string>;
 };
 
 // 3-2
@@ -74,6 +101,9 @@ const ch3_2 = () => {
    type myExclude<T, U> = T extends U ? never : T;
    type myExtract<T, U> = T extends U ? T : never;
 
+   type Ex = ("1" | 2 | "3");
+   type Ex2 = myExclude<Ex, string>;
+
    const excludeUser: myExclude<User, "married"> = {
       name: "장동권",
       age: 44,
@@ -82,7 +112,7 @@ const ch3_2 = () => {
    const extracString: myExtract<1 | "2" | 3, string> = "2"; // 이건 되는데
    // const extractUser: myExtract<User, "name"> = { name: "이건 왜 안됨?" }; // 객체라서 안되는거임
 
-   type myOmit<T, K extends keyof any> = Pick<T, Exclude<keyof T, K>>;
+   type myOmit<T, K extends keyof T> = Pick<T, Exclude<keyof T, K>>;
 
    const omitUser: myOmit<User, "age"> = {
       name: "홍",
@@ -92,10 +122,10 @@ const ch3_2 = () => {
    type NonNullable<T> = T & {}; //{} 는 undefined, null 을 제외한 모든것
    type nonNull = NonNullable<string | number | null>;
 
-   let userPartial: Partial<User> = {};
+  
 };
 
-// 3-5
+// 3-5 foreach
 const ch3_5 = () => {
    type Array2 = number[];
 
@@ -131,7 +161,7 @@ const ch3_5 = () => {
    });
 };
 
-// 3-6
+// 3-6 map
 const ch3_6 = () => {
    interface Arr<T> {
       length: number;
@@ -156,31 +186,91 @@ const ch3_6 = () => {
 
 };
 
+// 3-7 filter
 const ch3_7 = () => {
    interface Arr<T> {
       [key: number]: T;
       length: number;
       // filter(callback: (v: T, i: number, arr: this) => boolean | undefined): this;
-      // filter(callback: (v: T, i: number, arr: this) => boolean | undefined): T[];
+      filter(callback: (v: T, i: number, arr: this) => boolean | undefined): T[];
       // 아래와 같이 메서드 제너릭에 S 인자를 넣어준것은, 결과값이 T 의 subset 임을 알려두어 조건을 더 강화 하기 위함
-      filter<S extends T>(callback: (v: T, i: number, arr: T[]) => boolean| undefined ): S[];
+      //  filter<S extends T>(callback: (v: T, i: number, arr: T[]) => boolean | undefined): S[];
    }
 
    const testArr: Arr<number> = [1, 2, 3, 4, 5, 6, 7, 8, 9];
-   let result = testArr.filter((item):item is number => (item % 2) === 0);
+   let result = testArr.filter((item): item is number => (item % 2) === 0);
 
-   let len = testArr.length;
+   console.log("result:", result); // [2,4,6,8]
 
-   console.log("len:", len);
-   console.log("result:", result);
-
-   const testArr2: Arr<number|string> = [1,2,"3","4",5];
-   let result2 = testArr2.filter((item):item is string => typeof item ==='string'); // result2 가 
+   const testArr2: Arr<number | string> = [1, 2, "3", "4", 5];
+   let result2 = testArr2.filter((item): item is string => typeof item === 'string'); // result2 가 
 
    console.log("result2:", result2);
 
 }
 
+// 3-8 reduce
+const ch3_8 = () => {
+   interface Arr<T> {
+      [key: number]: T;
+      length: number;
+      reduce(callbcak: (r: T, v: T, i: number, arr: this) => T): T;   //result
+      // reduce(callbcak: (r: any, v: T, i: number, arr: this) => any, init: any): any;     // result2
+      reduce<R>(callbcak: (r: R, v: T, i: number, arr: this) => R, init: R): R;     // result2
+   }
+
+   const a: Arr<number> = [1, 2, 3, 4, 5, 6, 7];
+   const b = [1, 2, 3, 4, 5, 6, 7];
+
+   const result = a.reduce((sum, item) => sum + item);
+   // const result = a.reduce((sum, item) => sum + item, 7);
+   const result2: string = a.reduce((sum, item) => sum + item.toString(), "");
+
+   console.log(result);
+   console.log(result2);
+
+}
+
+// 3-9 flat
+const ch3_9 = () => {
+
+   type FlatArray<Arr, Depth extends number> = {
+      "done": Arr,
+      "recur": Arr extends ReadonlyArray<infer InnerArr>
+      ? FlatArray<InnerArr, [-1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20][Depth]>
+      : Arr
+   }[Depth extends -1 ? "done" : "recur"];
+
+
+   interface Arr<T> {
+      [key: number]: T;
+      length: number;
+      flat<A, D extends number = 1>(
+         this: A,
+         depth?: D
+      ): FlatArray<A, D>[];
+   }
+
+   const A: Arr<number | (number | number[])[]> = [1, [2, 3], [4, [5, 6]], 7];
+   const B = [1, [2, 3], [4, [5, 6]], 7];
+   let result = B.flat(2);
+
+   // FlatArray< (number| (number | number[])[])[], 2>
+   // FlatArray< number | (number | number[])[], 1>
+   // FlatArray< number | number[], 0>
+   // FlatArray< number, -1>   ==> 최종 도달하는 위치이고, flat 매서드 리턴에[] 가 있으므로 number[] 
+
+   console.log(result);
+
+   type GetInner<Arr> = Arr extends ReadonlyArray<infer Inner> ? Inner : never;
+
+   type innerArrayType = GetInner<typeof B>;
+   type innerArrayType2 = GetInner<innerArrayType>;
+   type innerArrayType3 = GetInner<innerArrayType2>;
+}
+
+const ch3_10 = () => {
+}
 
 
 
@@ -195,9 +285,12 @@ const chapterFuncs: Funcs = {
    5: ch3_5,
    6: ch3_6,
    7: ch3_7,
+   8: ch3_8,
+   9: ch3_9,
+   19: ch3_10,
 };
 
-const args = process.argv.slice(2); // 첫 두 항목을 제외한 나머지가 전달된 인자입니다.
+const args = process.argv.slice(2);
 const chapterNum = args[0];
 
 if (chapterNum in chapterFuncs) {
