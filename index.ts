@@ -122,8 +122,65 @@ const ch3_2 = () => {
    type NonNullable<T> = T & {}; //{} 는 undefined, null 을 제외한 모든것
    type nonNull = NonNullable<string | number | null>;
 
-  
+   // 속성중 일부만 optional 로 하려면???
+   type selcetPartail<T, S extends keyof T> = Partial<Pick<T, S>> & Omit<T, S>;
+   // Partial<Pick<T,S>>
+
+   type MyPick<T, S extends keyof T> = {
+      [P in S]?: T[P]
+   }
+
+   // type selcetPartailDetail<T, S extends keyof T>  = {
+   //    [P in (keyof T extends S? never:key of T)]: T[P]
+   // } & {
+   //    [P in S]?: T[P]
+   // }
+
+   // type myExclude<T, U> = T extends U ? never : T;
+
+   type myExclude2<T, S> = T extends S ? never : S
+
+   type MyPartial2<T> = {
+      [K in keyof T]?: T[K]
+   }
+
+
 };
+
+declare function declareFunc(a: string, b: number, c: boolean): { r: string };
+
+// 3-3 Parameters
+const ch3_3 = () => {
+   type AllFuncs = (...args: any) => any;
+   type AllConstructorFuncs = abstract new (...args: any) => any;
+
+   type Parmameters<T extends AllFuncs> = T extends (...args: infer P) => any ? P : never;
+   type ReturnTypes<T extends AllFuncs> = T extends (...args: any) => infer R ? R : never;
+
+   const testFunc = (a: string, b: number, c: boolean): { r: string } => {
+      return { r: "안녕" };
+   }
+
+   type params = Parmameters<typeof testFunc>;
+   type params2 = ReturnTypes<typeof declareFunc>;
+
+   type ConstructorPameters<T extends AllConstructorFuncs> =
+      T extends abstract new (...args: infer P) => any ? P : never;
+
+   type InstanceType<T extends AllConstructorFuncs> =
+      T extends abstract new (...args: any) => infer R ? R : never;
+
+   class TestClass {
+      public id: number = 1;
+      constructor(private a:number, private b:string) {
+      }
+      
+   }
+
+   type Param3 = ConstructorPameters<typeof TestClass>;
+   type Instacne = InstanceType<typeof TestClass>;
+
+}
 
 // 3-5 foreach
 const ch3_5 = () => {
@@ -282,12 +339,13 @@ interface Funcs {
 const chapterFuncs: Funcs = {
    1: ch3_1,
    2: ch3_2,
+   3: ch3_3,
    5: ch3_5,
    6: ch3_6,
    7: ch3_7,
    8: ch3_8,
    9: ch3_9,
-   19: ch3_10,
+   10: ch3_10,
 };
 
 const args = process.argv.slice(2);

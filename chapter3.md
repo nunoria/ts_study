@@ -108,50 +108,88 @@
 
    type myRecord = Record<"name" | "id",string>;
     ```
-### [3.2]
+### [3.2] Exclude, Extract, Omit, NonNullable
 
 <aside>
 ✅ Exclude,Extract는 주로 유니온 타입에서 특정 타입을 제외할 때 사용됩니다.
 
 ✅ Omit은 주로 객체 타입에서 특정 속성을 제외할 때 사용됩니다. Pick의 반대임
 
+✅ extends가 구현부에 오면 ?를 사용하여 문처럼 사용 가능
+
 </aside>
 
 - Exclude
-```typescript
-type Exclude<T,E> = T extends E ? never : T 
+  ```typescript
+  type Exclude<T,E> = T extends E ? never : T 
 
-type Ex = ("1" | 2 | "3");
-type Ex2 = myExclude<Ex, string>;
+  type Ex = ("1" | 2 | "3");
+  type Ex2 = myExclude<Ex, string>;
 
-//객체도 되네
-const excludeUser: myExclude<User, "married"> = {
-    name: "장동권",
-    age: 44,
-};
+  //객체도 되네
+  const excludeUser: myExclude<User, "married"> = {
+      name: "장동권",
+      age: 44,
+  };
 
 
-```
+  ```
 - Extract
-```typescript
-type myExtract<T, U> = T extends U ? T : never;
+  ```typescript
+  type myExtract<T, U> = T extends U ? T : never;
 
-const extracString: myExtract<1 | "2" | 3, string> = "2"; // 이건 되는데
-// const extractUser: myExtract<User, "name"> = { name: "이건 왜 안됨?" }; // 객체라서 안되는거임
+  const extracString: myExtract<1 | "2" | 3, string> = "2"; // 이건 되는데
+  // const extractUser: myExtract<User, "name"> = { name: "이건 왜 안됨?" }; // 객체라서 안되는거임
 
-```
+  ```
 
 - NonNullable
-```typescript
-type NonNullable<T> = T & {}; //{} 는 undefined, null 을 제외한 모든것
-type nonNull = NonNullable<string | number | null>;  // string |number
+  ```typescript
+  type NonNullable<T> = T & {}; //{} 는 undefined, null 을 제외한 모든것
+  type nonNull = NonNullable<string | number | null>;  // string |number
 
 
-```
+  ```
 
-### [3.3]
+### [3.3] Parameters, ConstructorParamets, ReturnType, InstanceType
+- Parameters,ReturnTypes
+  ```typescript
+    type Parmameters<T extends Funcs> = T extends (...args: infer P) => any ? P : never;
+    type ReturnTypes<T extends Funcs> = T extends (...args: any) => infer R ? R : never;
 
-### [3.4]
+    const testFunc= (a:string, b:number, c:boolean):{r:string} => {
+      return {r:"안녕" };
+    }
+
+    type params = Parmameters<typeof testFunc>;
+  ```
+
+- ConstructorParamets
+
+  `new (...args:any)=>any`는 클래스를 포함한 모든 생성자 함수
+
+  `abstract new (...args:any)=>any`는 추상클래스를 포함한 모든 생성자
+  ```typescript
+    type ConstructorPameters<T extends AllConstructorFuncs> =
+        T extends abstract new (...args: infer P) => any ? P : never;
+
+    type InstanceType<T extends AllConstructorFuncs> =
+        T extends abstract new (...args: any) => infer R ? R : never;
+
+    class TestClass {
+        public id: number = 1;
+        constructor(private a:number, private b:string) {
+        }
+        
+    }
+
+    type Param3 = ConstructorPameters<typeof TestClass>;
+    type Instacne = InstanceType<typeof TestClass>;
+  ```
+
+
+### [3.4] ThisType 
+ㅜㅜ
 
 ### [3.5] forEach 만들기
 
@@ -193,47 +231,45 @@ type nonNull = NonNullable<string | number | null>;  // string |number
 - callback 함수의 리턴값이 있다.
     - 리턴이 어떤값이 올지 예측이 가능한가???? 리턴값의 타입은 요소의 타입과 다를수 있다.ex) `return item.toString()`
 - callback 의 리턴값과 map 의 리턴값은 같은 타입을 갖으므로 제너릭으로 연결
+  ```typescript
+    interface Arr<T> {
+        length: number;
+        [x: number]: T;
+        // forEach: (callback: (v: T, i: number, a: this) => void) => void;
+        forEach(callback: (v: T, i: number, a: this) => void): void; // 메소드의 파라미터는 키값이 있어야 하므로 화살표 함수만 가능
+        map<R>(callback: (v: T, i: number, a: this) => R): R[];
+    }
+  ```
 
-```typescript
-   interface Arr<T> {
-      length: number;
-      [x: number]: T;
-      // forEach: (callback: (v: T, i: number, a: this) => void) => void;
-      forEach(callback: (v: T, i: number, a: this) => void): void; // 메소드의 파라미터는 키값이 있어야 하므로 화살표 함수만 가능
-      map<R>(callback: (v: T, i: number, a: this) => R): R[];
-   }
-```
+  <aside>
+  📌 함수의 경우 사용시에 제너릭 인수를 요구하는데, 메서드 map 에 제너릭 <R> 은 왜 사용할때  인수를 요구하지 않는가?
 
-<aside>
-📌 함수의 경우 사용시에 제너릭 인수를 요구하는데, 메서드 map 에 제너릭 <R> 은 왜 사용할때  인수를 요구하지 않는가?
+  ”주요 차이점은 **제너릭을 사용하는 대상**입니다. 함수의 경우 함수 자체에 제너릭을 적용하고, **메서드의 경우** 클래스나 인터페이스에 제너릭을 적용합니다”
 
-gpt 답변
-”주요 차이점은 **제너릭을 사용하는 대상**입니다. 함수의 경우 함수 자체에 제너릭을 적용하고, **메서드의 경우** 클래스나 인터페이스에 제너릭을 적용합니다”
+  </aside>
 
-</aside>
+  ```typescript
+  class Container<T> {
+    private value: T;
 
-```typescript
-class Container<T> {
-  private value: T;
+    constructor(value: T) {
+      this.value = value;
+    }
 
-  constructor(value: T) {
-    this.value = value;
+    // 클래스 수준에서 선언된 제너릭 타입을 메서드에서 사용
+    getValue(): T {
+      return this.value;
+    }
+
+    // 메서드 수준에서 추가적인 제너릭 타입도 선언 가능
+    map<U>(mapper: (value: T) => U): Container<U> {
+      return new Container<U>(mapper(this.value));
+    }
   }
 
-  // 클래스 수준에서 선언된 제너릭 타입을 메서드에서 사용
-  getValue(): T {
-    return this.value;
-  }
-
-  // 메서드 수준에서 추가적인 제너릭 타입도 선언 가능
-  map<U>(mapper: (value: T) => U): Container<U> {
-    return new Container<U>(mapper(this.value));
-  }
-}
-
-const numberContainer = new Container<number>(42);
-const stringValue = numberContainer.map(value => value.toString()).getValue();
-```
+  const numberContainer = new Container<number>(42);
+  const stringValue = numberContainer.map(value => value.toString()).getValue();
+  ```
 
 ### [3.7] filter 만들기
 
@@ -276,55 +312,55 @@ v is S
 - inital 값이 있고 없고의 경우를 나눠서 함수 overloading 을 사용
 - 초기값이 있는경우, 초기값에 의해 타입이 고정 되도록 한다.
 
-```typescript
-   interface Arr<T> {
-      [key: number]: T;
-      length: number;
-      reduce(callbcak: (r: T, v: T, i: number, arr: this) => T): T;   //result
-      // reduce(callbcak: (r: any, v: T, i: number, arr: this) => any, init: any): any;     // result2
-      reduce<R>(callbcak: (r: R, v: T, i: number, arr: this) => R, init: R): R;     // result2
-   }
+  ```typescript
+    interface Arr<T> {
+        [key: number]: T;
+        length: number;
+        reduce(callbcak: (r: T, v: T, i: number, arr: this) => T): T;   //result
+        // reduce(callbcak: (r: any, v: T, i: number, arr: this) => any, init: any): any;     // result2
+        reduce<R>(callbcak: (r: R, v: T, i: number, arr: this) => R, init: R): R;     // result2
+    }
 
-   const a: Arr<number> = [1, 2, 3, 4, 5, 6, 7];
-   const b = [1, 2, 3, 4, 5, 6, 7];
+    const a: Arr<number> = [1, 2, 3, 4, 5, 6, 7];
+    const b = [1, 2, 3, 4, 5, 6, 7];
 
-   const result = a.reduce((sum, item) => sum + item);
-   // const result = a.reduce((sum, item) => sum + item, 7);
-   const result2: string = a.reduce((sum, item) => sum + item.toString(), "");
+    const result = a.reduce((sum, item) => sum + item);
+    // const result = a.reduce((sum, item) => sum + item, 7);
+    const result2: string = a.reduce((sum, item) => sum + item.toString(), "");
 
-   console.log(result);  // 28
-   console.log(result2);  // "1234567"
-```
+    console.log(result);  // 28
+    console.log(result2);  // "1234567"
+  ```
 
 ### [3.9] flat 분석
 
-뇌정지!! 오늘의한줄평 저자는 변태
+뇌정지!! 
 
-핵심음 depth를 어떻게 줄여나가는가를 이해하는것! 리커시브
+핵심은 depth를 줄여나가는 로직 이해하는것!
 
-```typescript
-   type FlatArray<Arr, Depth extends number> = {
-    "done": Arr,
-    "recur": Arr extends ReadonlyArray<infer InnerArr>
-        ? FlatArray<InnerArr, [-1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20][Depth]>
-        : Arr
-		}[Depth extends -1 ? "done" : "recur"];
-   
-   
-   
-   interface Array<T> {
-      flat<A, D extends number = 1>(
-         this: A,
-         depth?: D
-      ): FlatArray<A, D>[];
-   }
-   
-   
-   const B = [1, 2, [3,4] ];
-   let result = B.flat();
-```
+  ```typescript
+    type FlatArray<Arr, Depth extends number> = {
+      "done": Arr,
+      "recur": Arr extends ReadonlyArray<infer InnerArr>
+          ? FlatArray<InnerArr, [-1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20][Depth]>
+          : Arr
+      }[Depth extends -1 ? "done" : "recur"];
+    
+    
+    
+    interface Array<T> {
+        flat<A, D extends number = 1>(
+          this: A,
+          depth?: D
+        ): FlatArray<A, D>[];
+    }
+    
+    
+    const B = [1, 2, [3,4] ];
+    let result = B.flat();
+  ```
 
-- flat 매서드의 타입 설명
+> flat 매서드의 타입 설명
 1. **`flat`** 함수는 두 개의 제너릭 타입 매개변수를 가지고 있음
     - **`A`**: 평탄화될 배열의 타입입니다.
     - **`D extends number = 1`**: 평탄화할 깊이(depth)를 나타내는 타입 매개변수입니다. **`extends number`**는 **`D`**가 반드시 숫자 타입이어야 한다는 제약을 나타내며, **`= 1`**은 기본값으로 1을 갖는다는 의미입니다.
@@ -332,7 +368,7 @@ v is S
 3. **`depth?: D`**: 함수의 두 번째 매개변수로 깊이를 나타내는 **`D`** 타입입니다. 이 매개변수는 선택적이며, 생략될 경우 기본값으로 1을 가집니다.
 4. **`FlatArray<A, D>[]`**: 함수의 반환 타입으로 **`FlatArray<A, D>`** 배열을 가집니다. 이는 **`FlatArray`**라는 타입에 대한 배열이며, 해당 타입은 평탄화된 배열을 나타냅니다.
 
-- FlatArray 의 타입설명
+> FlatArray 의 타입설명
 1. 타입 객체 정의후 바로 접근자[] 사용시 어떻게 동작하는지 알아야 함
 `type A = {name:string, age:number} ['age']` 
  ⇒ type A는 number 이다.
@@ -341,3 +377,6 @@ v is S
  ⇒ A타입이 B타입의 부분집합일때 C타입, 아니면 D타입
 3.  **infer**
 일반적으로 **`infer`**는 이 **컨디셔널 타입**내에서 타입을 추론하기 위해 사용됩니다.
+
+
+😂오늘의한줄평 저자는 변태
